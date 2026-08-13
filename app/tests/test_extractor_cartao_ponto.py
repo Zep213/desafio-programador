@@ -80,3 +80,40 @@ def test_ordem_fora_de_sequencia_nao_e_reordenada():
     assert dias[0]["punches"][0]["time_hhmm"] == "08:00"
     assert dias[1]["punches"][0]["time_hhmm"] == "09:00"
     assert dias[2]["punches"][0]["time_hhmm"] == "10:00"
+
+
+def test_faixa_colada_pelo_ocr_vira_dois_punches():
+    colunas = [
+        {"papel": "dia", "centro": 10.0},
+        {"papel": "entrada", "centro": 60.0},
+        {"papel": "saida", "centro": 110.0},
+    ]
+    linhas = [
+        [_palavra("5", 5, 0), _palavra("08:48-16:11", 55, 0)],
+    ]
+
+    dias = _extrair_dias_por_coluna(linhas, colunas)
+
+    punches = dias[0]["punches"]
+    assert [(p["kind"], p["time_hhmm"]) for p in punches] == [
+        ("IN", "08:48"),
+        ("OUT", "16:11"),
+    ]
+    assert punches[0]["time_raw"] == "08:48-16:11"
+    assert punches[1]["time_raw"] == "08:48-16:11"
+
+
+def test_palavra_com_confianca_ocr_baixa_vira_incerta():
+    colunas = [
+        {"papel": "dia", "centro": 10.0},
+        {"papel": "entrada", "centro": 60.0},
+        {"papel": "saida", "centro": 110.0},
+    ]
+    palavra_incerta = Palavra(texto="08:48", x0=55, x1=75, top=0, bottom=10, confianca=40.0)
+    linhas = [[_palavra("5", 5, 0), palavra_incerta]]
+
+    dias = _extrair_dias_por_coluna(linhas, colunas)
+
+    punch = dias[0]["punches"][0]
+    assert punch["time_raw"] == "08:48"
+    assert punch["time_hhmm"] == "??:??"

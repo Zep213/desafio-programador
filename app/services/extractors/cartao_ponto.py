@@ -6,6 +6,7 @@ from app.services.extractors.base import Extractor
 from app.services.reader import Palavra
 
 TOLERANCIA_LINHA = 3.0
+LIMIAR_CONFIANCA_OCR = 65.0
 
 SINONIMOS_COLUNA = {
     "dia": "dia",
@@ -94,6 +95,17 @@ def _papel_da_coluna(centro_palavra: float, colunas: list[dict]) -> str:
     return colunas[indice]["papel"]
 
 
+def _tempos_da_palavra(palavra: Palavra) -> list[tuple[str, str]]:
+    tempos = []
+    for m in tokens.TIME_RE.finditer(palavra.texto):
+        if palavra.confianca < LIMIAR_CONFIANCA_OCR:
+            hhmm = "??:??"
+        else:
+            hhmm = tokens.normalizar_horario(m.group(0))
+        tempos.append((palavra.texto, hhmm))
+    return tempos
+
+
 def _extrair_dias_por_coluna(linhas: list[list[Palavra]], colunas: list[dict]) -> list[dict]:
     dias: list[dict] = []
     dia_atual: dict | None = None
@@ -119,14 +131,18 @@ def _extrair_dias_por_coluna(linhas: list[list[Palavra]], colunas: list[dict]) -
             dia_atual = {"date_raw": "?", "punches": []}
             dias.append(dia_atual)
 
-        pares = sorted(
-            [("IN", p) for p in entradas] + [("OUT", p) for p in saidas],
+        palavras_com_papel = sorted(
+            [("entrada", p) for p in entradas] + [("saida", p) for p in saidas],
             key=lambda item: item[1].x0,
         )
-        for kind, palavra in pares:
-            dia_atual["punches"].append(
-                {"kind": kind, "time_raw": palavra.texto, "time_hhmm": tokens.normalizar_horario(palavra.texto)}
-            )
+        for papel, palavra in palavras_com_papel:
+            tempos = _tempos_da_palavra(palavra)
+            if len(tempos) >= 2:
+                kinds = ["IN", "OUT"] * (len(tempos) // 2 + 1)
+            else:
+                kinds = ["IN" if papel == "entrada" else "OUT"]
+            for kind, (time_raw, time_hhmm) in zip(kinds, tempos):
+                dia_atual["punches"].append({"kind": kind, "time_raw": time_raw, "time_hhmm": time_hhmm})
 
     return dias
 
@@ -151,10 +167,11 @@ def _extrair_dias_fallback(linhas: list[list[Palavra]]) -> list[dict]:
             dia_atual = {"date_raw": "?", "punches": []}
             dias.append(dia_atual)
 
-        for indice, palavra in enumerate(horarios):
-            kind = "IN" if indice % 2 == 0 else "OUT"
-            dia_atual["punches"].append(
-                {"kind": kind, "time_raw": palavra.texto, "time_hhmm": tokens.normalizar_horario(palavra.texto)}
-            )
+        contador = 0
+        for palavra in horarios:
+            for time_raw, time_hhmm in _tempos_da_palavra(palavra):
+                kind = "IN" if contador % 2 == 0 else "OUT"
+                dia_atual["punches"].append({"kind": kind, "time_raw": time_raw, "time_hhmm": time_hhmm})
+                contador += 1
 
     return dias
