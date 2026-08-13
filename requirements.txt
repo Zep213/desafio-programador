@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pdfplumber
+pytesseract
+pdf2image
+openpyxl
+pytest
+httpx

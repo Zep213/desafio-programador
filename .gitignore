@@ -7,15 +7,23 @@ avaliacao/
 # Dependências
 node_modules/
 venv/
+.venv/
 env/
 __pycache__/
 *.pyc
+
+# Estado em runtime da aplicação (banco SQLite + PDFs recebidos) —
+# efêmero, sobrevive só no volume do docker-compose
+data/
 
 # IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# pytest
+.pytest_cache/
 
 # Sistemas operacionais
 .DS_Store
