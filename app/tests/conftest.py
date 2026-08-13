@@ -27,3 +27,10 @@ def client():
 @pytest.fixture()
 def pdf_valido() -> bytes:
     return b"%PDF-1.4\n%conteudo fake de pdf para teste\n%%EOF"
+
+
+@pytest.fixture()
+def holerite_real() -> bytes:
+    caminho = os.path.join(os.path.dirname(__file__), "..", "..", "exemplos", "payroll-03.pdf")
+    with open(caminho, "rb") as f:
+        return f.read()

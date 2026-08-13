@@ -1,11 +1,9 @@
-import bisect
-
 from app.errors import LayoutDesconhecidoError
+from app.services import colunas as colunas_util
 from app.services import reader, tokens
 from app.services.extractors.base import Extractor
 from app.services.reader import Palavra
 
-TOLERANCIA_LINHA = 3.0
 LIMIAR_CONFIANCA_OCR = 65.0
 
 SINONIMOS_COLUNA = {
@@ -27,11 +25,11 @@ class CartaoPontoExtractor(Extractor):
         pages: list[dict] = []
 
         for pagina in paginas_lidas:
-            linhas = _agrupar_em_linhas(pagina.palavras)
+            linhas = colunas_util.agrupar_em_linhas(pagina.palavras)
             cabecalho = _localizar_cabecalho(linhas)
 
             if cabecalho is not None:
-                colunas_atuais = _colunas_do_cabecalho(cabecalho["linha"])
+                colunas_atuais = colunas_util.colunas_do_cabecalho(cabecalho["linha"], SINONIMOS_COLUNA)
                 linhas_de_dados = [l for l in linhas if l[0].top > cabecalho["top"]]
             else:
                 linhas_de_dados = linhas
@@ -51,48 +49,11 @@ class CartaoPontoExtractor(Extractor):
         return {"pages": pages}
 
 
-def _agrupar_em_linhas(palavras: list[Palavra]) -> list[list[Palavra]]:
-    ordenadas = sorted(palavras, key=lambda p: (p.top, p.x0))
-    linhas: list[list[Palavra]] = []
-    linha_atual: list[Palavra] = []
-    top_referencia = None
-
-    for palavra in ordenadas:
-        if top_referencia is None or abs(palavra.top - top_referencia) <= TOLERANCIA_LINHA:
-            linha_atual.append(palavra)
-            top_referencia = top_referencia if top_referencia is not None else palavra.top
-        else:
-            linhas.append(sorted(linha_atual, key=lambda p: p.x0))
-            linha_atual = [palavra]
-            top_referencia = palavra.top
-
-    if linha_atual:
-        linhas.append(sorted(linha_atual, key=lambda p: p.x0))
-
-    return linhas
-
-
 def _localizar_cabecalho(linhas: list[list[Palavra]]) -> dict | None:
     for linha in linhas:
         if any(tokens.sem_acento(p.texto).lower() == "dia" for p in linha):
             return {"linha": linha, "top": linha[0].top}
     return None
-
-
-def _colunas_do_cabecalho(linha_cabecalho: list[Palavra]) -> list[dict]:
-    colunas = []
-    for palavra in linha_cabecalho:
-        papel = SINONIMOS_COLUNA.get(tokens.sem_acento(palavra.texto).lower(), "outro")
-        colunas.append({"papel": papel, "centro": (palavra.x0 + palavra.x1) / 2})
-    colunas.sort(key=lambda c: c["centro"])
-    return colunas
-
-
-def _papel_da_coluna(centro_palavra: float, colunas: list[dict]) -> str:
-    centros = [c["centro"] for c in colunas]
-    fronteiras = [(centros[i] + centros[i + 1]) / 2 for i in range(len(centros) - 1)]
-    indice = bisect.bisect_right(fronteiras, centro_palavra)
-    return colunas[indice]["papel"]
 
 
 def _tempos_da_palavra(palavra: Palavra) -> list[tuple[str, str]]:
@@ -112,7 +73,7 @@ def _extrair_dias_por_coluna(linhas: list[list[Palavra]], colunas: list[dict]) -
 
     for linha in linhas:
         classificada = [
-            (_papel_da_coluna((p.x0 + p.x1) / 2, colunas), p) for p in linha
+            (colunas_util.papel_da_coluna((p.x0 + p.x1) / 2, colunas), p) for p in linha
         ]
 
         marcador = [p for papel, p in classificada if papel in ("dia", "semana")]

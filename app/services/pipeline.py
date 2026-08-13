@@ -4,13 +4,13 @@ import time
 from app.errors import MENSAGEM_ERRO_GENERICO, MENSAGENS_PIPELINE
 from app.models import repository as repo
 from app.services.extractors.cartao_ponto import CartaoPontoExtractor
-from app.services.extractors.holerite import HoleriteExtractorFake
+from app.services.extractors.holerite import HoleriteExtractor
 
 logger = logging.getLogger("quickfiller")
 
 EXTRACTORS = {
     "cartao-ponto": CartaoPontoExtractor(),
-    "holerite": HoleriteExtractorFake(),
+    "holerite": HoleriteExtractor(),
 }
 
 

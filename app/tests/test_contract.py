@@ -44,7 +44,7 @@ def test_get_id_inexistente_404(client):
     assert "não encontrada" in resp.json()["detail"]
 
 
-def test_ciclo_completo_polling_ate_concluido(client, monkeypatch, pdf_valido):
+def test_ciclo_completo_polling_ate_concluido(client, monkeypatch, holerite_real):
     entrou_no_pipeline = threading.Event()
     pode_continuar = threading.Event()
 
@@ -69,7 +69,7 @@ def test_ciclo_completo_polling_ate_concluido(client, monkeypatch, pdf_valido):
     def enviar():
         resultado["resp"] = client.post(
             "/api/transcricoes",
-            files={"arquivo": ("holerite.pdf", pdf_valido, "application/pdf")},
+            files={"arquivo": ("holerite.pdf", holerite_real, "application/pdf")},
             data={"tipo": "holerite"},
         )
 
@@ -96,7 +96,8 @@ def test_ciclo_completo_polling_ate_concluido(client, monkeypatch, pdf_valido):
     corpo = final.json()
     assert corpo["status"] == "concluido"
     assert corpo["erro"] is None
-    assert corpo["value"]["pages"][0]["year"] == "2024"
+    assert corpo["value"]["pages"][0]["year"] == "2019"
+    assert corpo["value"]["pages"][0]["month"] == "10"
 
 
 def test_put_substitui_value_e_get_reflete(client, pdf_valido, monkeypatch):
