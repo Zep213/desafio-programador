@@ -1,0 +1,81 @@
+{
+  "colunas": [
+    "Pág.",
+    "Mês",
+    "Ano",
+    "SALARIO",
+    "INSS MES",
+    "DSR COMISSAO",
+    "DESC ASS MEDICA AMIL",
+    "REMUNERACAO VARIAVEL",
+    "VALE REFEICAO"
+  ],
+  "linhas": [
+    {
+      "Pág.": "1",
+      "Mês": "09",
+      "Ano": "2019",
+      "SALARIO": "953,36",
+      "INSS MES": "200,43",
+      "DSR COMISSAO": "173,68",
+      "DESC ASS MEDICA AMIL": "5,00",
+      "REMUNERACAO VARIAVEL": "1.100,00",
+      "VALE REFEICAO": "6,00"
+    },
+    {
+      "Pág.": "1",
+      "Mês": "09",
+      "Ano": "2019",
+      "SALARIO": "953,36",
+      "INSS MES": "200,43",
+      "DSR COMISSAO": "173,68",
+      "DESC ASS MEDICA AMIL": "5,00",
+      "REMUNERACAO VARIAVEL": "1.100,00",
+      "VALE REFEICAO": "6,00"
+    },
+    {
+      "Pág.": "2",
+      "Mês": "?",
+      "Ano": "?",
+      "SALARIO": "",
+      "INSS MES": "",
+      "DSR COMISSAO": "",
+      "DESC ASS MEDICA AMIL": "",
+      "REMUNERACAO VARIAVEL": "",
+      "VALE REFEICAO": ""
+    },
+    {
+      "Pág.": "3",
+      "Mês": "?",
+      "Ano": "?",
+      "SALARIO": "",
+      "INSS MES": "",
+      "DSR COMISSAO": "",
+      "DESC ASS MEDICA AMIL": "",
+      "REMUNERACAO VARIAVEL": "",
+      "VALE REFEICAO": ""
+    },
+    {
+      "Pág.": "4",
+      "Mês": "?",
+      "Ano": "?",
+      "SALARIO": "",
+      "INSS MES": "",
+      "DSR COMISSAO": "",
+      "DESC ASS MEDICA AMIL": "",
+      "REMUNERACAO VARIAVEL": "",
+      "VALE REFEICAO": ""
+    },
+    {
+      "Pág.": "5",
+      "Mês": "?",
+      "Ano": "?",
+      "SALARIO": "",
+      "INSS MES": "",
+      "DSR COMISSAO": "",
+      "DESC ASS MEDICA AMIL": "",
+      "REMUNERACAO VARIAVEL": "",
+      "VALE REFEICAO": ""
+    }
+  ]
+}

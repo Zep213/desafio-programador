@@ -119,20 +119,56 @@ def test_put_em_processando_409(client):
     assert resp.status_code == 409
 
 
-def test_planilha_formato_json_devolve_value_editado(client):
+def test_planilha_formato_json_devolve_tabela_transposta_nao_o_value_bruto(client):
     id_ = repo.criar("holerite")
     value = {"pages": [{"page": 1, "year": "2024", "month": "03", "fields": [], "bases": []}]}
     repo.concluir(id_, value)
 
     resp = client.get(f"/api/transcricoes/{id_}/planilha?formato=json")
     assert resp.status_code == 200
-    assert resp.json() == value
+    assert resp.json() == {
+        "colunas": ["Pág.", "Mês", "Ano"],
+        "linhas": [{"Pág.": "1", "Mês": "03", "Ano": "2024"}],
+    }
 
 
-def test_planilha_xlsx_e_csv_ainda_nao_implementados_501(client):
+def test_planilha_formato_xlsx_devolve_arquivo_xlsx_valido(client):
+    id_ = repo.criar("cartao-ponto")
+    repo.concluir(id_, {"pages": [{"page": 1, "days": []}]})
+
+    resp = client.get(f"/api/transcricoes/{id_}/planilha?formato=xlsx")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert resp.content[:2] == b"PK"  # xlsx é um zip
+
+
+def test_planilha_formato_csv_devolve_tabela(client):
+    id_ = repo.criar("cartao-ponto")
+    repo.concluir(
+        id_,
+        {"pages": [{"page": 1, "days": [{"date_raw": "01", "punches": []}]}]},
+    )
+
+    resp = client.get(f"/api/transcricoes/{id_}/planilha?formato=csv")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    texto = resp.content.decode("utf-8-sig")
+    assert texto.splitlines()[0] == "Data"
+    assert texto.splitlines()[1] == "01"
+
+
+def test_planilha_formato_invalido_422(client):
     id_ = repo.criar("holerite")
     repo.concluir(id_, {"pages": []})
 
-    for formato in ("xlsx", "csv"):
-        resp = client.get(f"/api/transcricoes/{id_}/planilha?formato={formato}")
-        assert resp.status_code == 501
+    resp = client.get(f"/api/transcricoes/{id_}/planilha?formato=pdf")
+    assert resp.status_code == 422
+
+
+def test_planilha_transcricao_ainda_processando_409(client):
+    id_ = repo.criar("holerite")
+
+    resp = client.get(f"/api/transcricoes/{id_}/planilha?formato=json")
+    assert resp.status_code == 409

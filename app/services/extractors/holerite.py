@@ -76,7 +76,10 @@ def _localizar_cabecalho(linhas: list[list[Palavra]]) -> dict | None:
     for linha in linhas:
         papeis = [SINONIMOS_COLUNA.get(tokens.sem_acento(p.texto).lower()) for p in linha]
         reconhecidos = [p for p in papeis if p is not None]
-        if len(reconhecidos) >= 2:
+        # uma linha-título de seção (ex.: "Proventos  Descontos") também casa com o
+        # sinônimo de "valor" duas vezes — só é cabeçalho de verdade se tiver coluna
+        # de rótulo (nome/código), não só valor.
+        if len(reconhecidos) >= 2 and any(p in ("nome", "codigo") for p in reconhecidos):
             return {"linha": linha, "top": linha[0].top}
     return None
 
@@ -92,12 +95,22 @@ def _competencia_na_linha(linha: list[Palavra]) -> tuple[str, str] | None:
     return None
 
 
-def _dividir_por_competencia(linhas: list[list[Palavra]]) -> list[tuple[tuple[str, str], list[list[Palavra]]]]:
+def _competencia_solta_na_linha(linha: list[Palavra]) -> tuple[str, str] | None:
+    for palavra in linha:
+        resultado = tokens.parse_competencia(palavra.texto.strip(":"))
+        if resultado:
+            return resultado
+    return None
+
+
+def _agrupar_por_marcador(
+    linhas: list[list[Palavra]], localizar_marcador
+) -> list[tuple[tuple[str, str], list[list[Palavra]]]]:
     blocos: list[tuple[tuple[str, str], list[list[Palavra]]]] = []
     linhas_do_bloco: list[list[Palavra]] | None = None
 
     for linha in linhas:
-        competencia = _competencia_na_linha(linha)
+        competencia = localizar_marcador(linha)
         if competencia:
             linhas_do_bloco = []
             blocos.append((competencia, linhas_do_bloco))
@@ -105,6 +118,17 @@ def _dividir_por_competencia(linhas: list[list[Palavra]]) -> list[tuple[tuple[st
             linhas_do_bloco.append(linha)
 
     return blocos
+
+
+def _dividir_por_competencia(linhas: list[list[Palavra]]) -> list[tuple[tuple[str, str], list[list[Palavra]]]]:
+    blocos = _agrupar_por_marcador(linhas, _competencia_na_linha)
+    if blocos:
+        return blocos
+
+    # Fallback: documento sem rótulo "Mês"/"Período" nenhum — a competência aparece
+    # solta (ex.: "SETEMBRO/2019"). Só entra em jogo quando o rótulo não existe em
+    # lugar nenhum da página, pra não competir com o caminho já calibrado.
+    return _agrupar_por_marcador(linhas, _competencia_solta_na_linha)
 
 
 def _linha_tem_dois_pontos(linha: list[Palavra]) -> bool:
@@ -172,40 +196,44 @@ def _extrair_fields_e_bases(
             if _linha_tem_dois_pontos(linha):
                 continue
 
-            classificada = [
-                (colunas_util.papel_da_coluna((p.x0 + p.x1) / 2, colunas), p) for p in linha
-            ]
-            codigos_brutos = [p for papel, p in classificada if papel == "codigo"]
-            nomes = [p for papel, p in classificada if papel == "nome"]
-            referencias_brutas = [p for papel, p in classificada if papel == "referencia"]
+            # Colunas lado a lado (Proventos | Descontos) podem trazer mais de uma
+            # verba na mesma linha física. Percorre em ordem x e fecha um grupo a
+            # cada "valor" encontrado; se nenhum rótulo novo apareceu desde o
+            # último valor (ex.: "Total" compartilhado por duas colunas), reusa o
+            # último rótulo em vez de descartar o valor.
+            buffer_codigo: list[Palavra] = []
+            buffer_nome: list[Palavra] = []
+            buffer_referencia: list[Palavra] = []
+            ultimo_label = ""
 
-            codigos = [p for p in codigos_brutos if _parece_codigo(p.texto)]
-            referencias = [p for p in referencias_brutas if _parece_referencia(p.texto)]
-            nomes_completos = sorted(
-                nomes
-                + [p for p in codigos_brutos if not _parece_codigo(p.texto)]
-                + [p for p in referencias_brutas if not _parece_referencia(p.texto)],
-                key=lambda p: p.x0,
+            classificada = sorted(
+                [(colunas_util.papel_da_coluna((p.x0 + p.x1) / 2, colunas), p) for p in linha],
+                key=lambda item: item[1].x0,
             )
-            valores = [
-                p
-                for papel, p in classificada
-                if papel == "valor" and tokens.normalizar_dinheiro(p.texto)
-            ]
 
-            if not valores or not nomes_completos:
-                continue
-
-            label = " ".join(p.texto for p in nomes_completos)
-            code = codigos[0].texto if codigos else ""
-            reference = referencias[0].texto if referencias else ""
-
-            for palavra_valor in sorted(valores, key=lambda p: p.x0):
-                value = tokens.normalizar_dinheiro(palavra_valor.texto)
-                if _eh_rotulo_de_base(label):
-                    bases.append({"label": label, "value": value})
+            for papel, p in classificada:
+                if papel == "valor" and tokens.normalizar_dinheiro(p.texto):
+                    label = " ".join(x.texto for x in buffer_nome) if buffer_nome else ultimo_label
+                    # rótulo puramente numérico não é rótulo de verba — é sinal de que
+                    # essa linha pertence a outra sub-tabela (ex.: mini-resumo de bases
+                    # com rótulos numa linha e valores na linha de baixo, layout que
+                    # essa gramática ainda não segue). Melhor descartar que inventar.
+                    if label and any(c.isalpha() for c in label):
+                        value = tokens.normalizar_dinheiro(p.texto)
+                        code = buffer_codigo[0].texto if buffer_codigo else ""
+                        reference = buffer_referencia[0].texto if buffer_referencia else ""
+                        if _eh_rotulo_de_base(label):
+                            bases.append({"label": label, "value": value})
+                        else:
+                            fields.append({"code": code, "label": label, "reference": reference, "value": value})
+                        ultimo_label = label
+                    buffer_codigo, buffer_nome, buffer_referencia = [], [], []
+                elif papel == "codigo" and _parece_codigo(p.texto):
+                    buffer_codigo.append(p)
+                elif papel == "referencia" and _parece_referencia(p.texto):
+                    buffer_referencia.append(p)
                 else:
-                    fields.append({"code": code, "label": label, "reference": reference, "value": value})
+                    buffer_nome.append(p)
 
     for linha in linhas:
         for rotulo, valor in _pares_rotulo_valor(linha):

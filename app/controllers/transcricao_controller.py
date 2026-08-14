@@ -7,6 +7,9 @@ from app.errors import UploadInvalidoError
 from app.models import repository as repo
 from app.models.schemas import AtualizarValueRequest
 from app.services import pipeline
+from app.services.exporters import EXPORTERS
+
+FORMATOS_VALIDOS = {"xlsx", "csv", "json"}
 
 router = APIRouter()
 
@@ -95,20 +98,18 @@ async def baixar_planilha(id_: str, formato: str = "json"):
     if registro is None:
         return JSONResponse(status_code=404, content={"detail": f"Transcrição '{id_}' não encontrada."})
 
-    if formato == "json":
-        import json
+    if formato not in FORMATOS_VALIDOS:
+        return JSONResponse(status_code=422, content={"detail": f"Formato '{formato}' desconhecido."})
 
-        conteudo = json.dumps(registro["value"], ensure_ascii=False, indent=2)
-        return Response(
-            content=conteudo,
-            media_type="application/json",
-            headers={"Content-Disposition": f'attachment; filename="{id_}.json"'},
-        )
-
-    if formato in ("xlsx", "csv"):
+    if registro["value"] is None:
         return JSONResponse(
-            status_code=501,
-            content={"detail": f"Formato '{formato}' disponível no dia 4."},
+            status_code=409,
+            content={"detail": "Transcrição ainda não tem dados para gerar planilha."},
         )
 
-    return JSONResponse(status_code=422, content={"detail": f"Formato '{formato}' desconhecido."})
+    conteudo, mimetype = EXPORTERS[registro["tipo"]].export(registro["value"], formato)
+    return Response(
+        content=conteudo,
+        media_type=mimetype,
+        headers={"Content-Disposition": f'attachment; filename="{id_}.{formato}"'},
+    )
