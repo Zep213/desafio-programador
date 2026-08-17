@@ -218,7 +218,7 @@ def test_planilha_formato_xlsx_devolve_arquivo_xlsx_valido(client):
     assert resp.headers["content-type"] == (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    assert resp.content[:2] == b"PK"  # xlsx é um zip
+    assert resp.content[:2] == b"PK"
 
 
 def test_planilha_formato_csv_devolve_tabela(client):

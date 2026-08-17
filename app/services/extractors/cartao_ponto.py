@@ -121,12 +121,6 @@ GAP_MINIMO_AREA_DE_TOTAIS = 25.0
 
 
 def _limite_area_de_batidas(horarios: list[Palavra]) -> float:
-    """Sem cabeçalho pra apontar onde a coluna de batida termina e a de totais
-    (H.Ext, Atraso, Falta, Ad.Not, Abono...) começa, usa a própria geometria da
-    linha: as batidas de verdade ficam com espaçamento regular entre si, e há um
-    salto horizontal bem maior antes do bloco de totais. Sem esse salto claro
-    (linha só com 0 ou 1 horário, ou espaçamento uniforme), não corta nada — é
-    melhor manter tudo do que arriscar cortar batida de verdade."""
     if len(horarios) < 2:
         return float("inf")
 

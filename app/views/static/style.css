@@ -38,8 +38,6 @@ section {
   display: none !important;
 }
 
-/* --- upload --- */
-
 #form-upload {
   display: flex;
   flex-wrap: wrap;
@@ -68,8 +66,6 @@ section {
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* --- progresso --- */
 
 #painel-progresso {
   display: flex;
@@ -105,8 +101,6 @@ section {
 #painel-erro button {
   margin-top: 0.5rem;
 }
-
-/* --- revisão: PDF + tabela lado a lado --- */
 
 #painel-revisao-corpo {
   display: flex;
@@ -188,8 +182,6 @@ tr.linha-vermelha td:first-child {
   white-space: normal;
 }
 
-/* --- ações --- */
-
 #painel-acoes {
   display: flex;
   flex-wrap: wrap;
@@ -222,8 +214,6 @@ tr.linha-vermelha td:first-child {
   font-size: 0.85rem;
   color: #555;
 }
-
-/* --- tela estreita / mobile --- */
 
 @media (max-width: 640px) {
   #painel-revisao-corpo {

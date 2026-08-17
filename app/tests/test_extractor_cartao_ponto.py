@@ -109,18 +109,14 @@ def test_faixa_colada_pelo_ocr_vira_dois_punches():
 
 
 def test_fallback_descarta_horarios_isolados_a_direita_como_totais():
-    # Documento sem cabeçalho reconhecido (ex.: coluna "Data" em vez de "Dia",
-    # ou cabeçalho ilegível por OCR) — 4 batidas reais bem próximas, depois um
-    # salto grande antes de valores tipo H.Ext/Atraso/Ad.Not que também parecem
-    # horário mas não são batida nenhuma.
     linha = [
         _palavra("16/12/2019", 5, 0),
         _palavra("07:00", 100, 0),
         _palavra("12:00", 140, 0),
         _palavra("13:00", 180, 0),
         _palavra("17:00", 220, 0),
-        _palavra("01:15", 400, 0),  # H.Ext
-        _palavra("00:30", 450, 0),  # Atraso
+        _palavra("01:15", 400, 0),
+        _palavra("00:30", 450, 0),
     ]
 
     dias = _extrair_dias_fallback([linha])
@@ -130,9 +126,6 @@ def test_fallback_descarta_horarios_isolados_a_direita_como_totais():
 
 
 def test_fallback_nao_corta_quando_espacamento_e_uniforme():
-    # Sem salto dominante (espaçamento regular do início ao fim), não há
-    # sinal geométrico de "área de totais" — melhor manter tudo a arriscar
-    # cortar batida real por engano.
     linha = [
         _palavra("16/12/2019", 5, 0),
         _palavra("07:00", 100, 0),
@@ -163,10 +156,6 @@ def test_palavra_com_confianca_ocr_baixa_vira_incerta():
 
 
 def test_dias_reconhecidos_sem_nenhuma_batida_levanta_erro_honesto(monkeypatch):
-    # Reproduz o formato do time-card-04.pdf no caminho de fallback: fragmentos
-    # de cabeçalho de quinzena ("1.QUINZENA", números soltos) viram "dias" por
-    # começarem com 1-2 dígitos, mas nenhum tem horário por perto. Zero batidas
-    # no documento inteiro não é uma leitura escassa — é layout não identificado.
     palavras = [_palavra("1.QUINZENA", 5, 0), _palavra("6", 5, 10), _palavra("4", 5, 20)]
     pagina = PaginaLida(page=1, rota="digital", palavras=palavras)
     monkeypatch.setattr(reader, "ler", lambda caminho: [pagina])

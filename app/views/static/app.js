@@ -1,8 +1,5 @@
 "use strict";
 
-// Textos dos avisos: rótulo de UI, não regra de negócio — a REGRA (o que dispara
-// cada aviso) mora só no backend, em services/tabela.py::calcular_avisos_*.
-// Aqui só sabemos exibir um código já calculado, nunca decidir se ele se aplica.
 const MOTIVOS_AVISO = {
   batidas_impares: "Batidas ímpares — falta uma entrada ou uma saída nesse dia.",
   incerto: "Tem pelo menos um caractere que não foi lido com segurança (?).",
@@ -11,8 +8,6 @@ const MOTIVOS_AVISO = {
   mes_nao_sequencial: "A competência não é o mês seguinte à página anterior.",
 };
 
-// Mesma partição vermelho/amarelo de app/services/tabela.py (VERMELHO/AMARELO) —
-// prioridade calculada aqui, não via cascata de CSS, para não depender de ordem de classe.
 const VERMELHO = new Set(["data_nao_sequencial", "mes_nao_sequencial"]);
 const AMARELO = new Set(["batidas_impares", "incerto", "pagina_vazia"]);
 
@@ -138,8 +133,6 @@ function voltarParaUpload() {
   els.formUpload.reset();
   mostrarPainel(els.painelUpload);
 }
-
-// --- revisão: monta linhas mirando as MESMAS colunas do exporter (tabela.py) ---
 
 function montarLinhasCartao(value) {
   const dias = [];
@@ -318,8 +311,6 @@ async function salvarCorrecoes() {
       alert(corpo.detail || "Não foi possível salvar as correções.");
       return false;
     }
-    // Avisos dependem do 'value' atual — busca de novo para refletir o que
-    // deixou de ser inconsistente (ou passou a ser) depois da correção.
     const atualizado = await fetch(`/api/transcricoes/${estado.id}`).then((r) => r.json());
     estado.value = atualizado.value;
     estado.avisosPorLinha = atualizado.avisos || [];
@@ -336,8 +327,6 @@ async function salvarCorrecoes() {
 }
 
 async function baixarPlanilha(formato) {
-  // Decisão (documentada em PROCESSO.md): se há edição pendente, salva
-  // automaticamente antes de baixar, em vez de bloquear o botão de download.
   if (estado.sujo) {
     const ok = await salvarCorrecoes();
     if (!ok) return;

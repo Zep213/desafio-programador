@@ -21,7 +21,7 @@ def test_diverge_gera_warning_sem_pii(caplog):
     assert len(caplog.records) == 1
     mensagem = caplog.records[0].getMessage()
     assert "abc123" in mensagem
-    assert "Salário" not in mensagem  # sem PII/dado de negócio, só números e id
+    assert "Salário" not in mensagem
 
 
 def test_bate_nao_gera_warning(caplog):

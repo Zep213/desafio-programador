@@ -52,9 +52,6 @@ def calcular_avisos_cartao(days: list[dict]) -> list[list[str]]:
 
         numero = _numero_dia(dia.get("date_raw", ""))
         if numero is not None:
-            # decréscimo vindo de um dia perto do fim do mês (>=28) é reinício de
-            # mês/quinzena legítimo, não quebra — só um decréscimo "no meio" do mês
-            # é sinal de marcador fora de ordem (OCR ou erro de leitura).
             if (
                 ultimo_dia_valido is not None
                 and numero < ultimo_dia_valido
@@ -109,8 +106,6 @@ def calcular_avisos_holerite(pages: list[dict]) -> list[list[str]]:
                 ultima_competencia,
                 _mes_seguinte(*ultima_competencia),
             ):
-                # repetir a MESMA competência é normal (folha + acerto do mesmo mês,
-                # via1/via2) — só avanço fora do esperado ou retrocesso é quebra.
                 avisos_entrada.append("mes_nao_sequencial")
             ultima_competencia = atual
 

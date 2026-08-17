@@ -115,9 +115,6 @@ def test_localizar_cabecalho_ignora_linha_de_titulo_de_secao():
 
 
 def test_linha_de_valores_sem_rotulo_textual_e_descartada_nao_inventa_label():
-    # mini-tabela de bases com rótulos numa linha e valores na linha de baixo
-    # (layout ainda não suportado) cai inteira nas colunas "valor"/"referencia" —
-    # sem nenhum token alfabético, não deve virar field nem base.
     colunas = [
         {"papel": "nome", "centro": 44},
         {"papel": "referencia", "centro": 150},
@@ -144,7 +141,6 @@ def test_dividir_por_competencia_aceita_marcador_solto_sem_rotulo():
 
 
 def test_duas_verbas_lado_a_lado_na_mesma_linha_cada_uma_com_seu_rotulo():
-    # colunas: nome(0-113) referencia(113-212) valor(212-258) nome(258-341) referencia(341-439) valor(439+)
     colunas = [
         {"papel": "nome", "centro": 44},
         {"papel": "referencia", "centro": 182},

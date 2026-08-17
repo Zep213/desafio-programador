@@ -3,7 +3,6 @@
 ## Como rodar
 
 ```bash
-cp .env.example .env      # ajuste se quiser; os defaults já funcionam
 docker compose up --build
 ```
 
@@ -64,7 +63,7 @@ Os dois primeiros itens são as maiores dívidas de honestidade em aberto — ma
 
 Guarda: o PDF original (`UPLOAD_DIR`, disco do container) e a transcrição (`value` + metadados, SQLite em `DB_PATH`). Não guarda: nada além disso — sem PII em log (logs usam só `id`, número de página, timestamps e somas; nunca nome, CPF, matrícula ou valor de verba específica).
 
-Por quanto tempo: `RETENCAO_HORAS` (default 24h, `.env.example`). **Enforcement real, não só declarado**: a cada novo `POST /api/transcricoes`, uma varredura (`_limpar_expirados`, `controllers/transcricao_controller.py`) apaga do SQLite e do disco tudo mais velho que `RETENCAO_HORAS`. É best-effort — dispara só quando alguém envia um documento novo, não é um cron dedicado; um servidor parado sem uploads não limpa sozinho. Documentado assim de propósito, não escondido.
+Por quanto tempo: `RETENCAO_HORAS` (default 24h, `docker-compose.yml`). **Enforcement real, não só declarado**: a cada novo `POST /api/transcricoes`, uma varredura (`_limpar_expirados`, `controllers/transcricao_controller.py`) apaga do SQLite e do disco tudo mais velho que `RETENCAO_HORAS`. É best-effort — dispara só quando alguém envia um documento novo, não é um cron dedicado; um servidor parado sem uploads não limpa sozinho. Documentado assim de propósito, não escondido.
 
 Efeito do free tier do Render (se o deploy usar disco efêmero, sem volume persistente): o disco some a cada redeploy, o que na prática é uma segunda camada de retenção — mais agressiva que `RETENCAO_HORAS`, mas na direção certa (menos dado parado, não mais).
 
@@ -74,5 +73,5 @@ Efeito do free tier do Render (se o deploy usar disco efêmero, sem volume persi
 - Validação por magic bytes (`%PDF` nos primeiros bytes) — um `.txt` renomeado pra `.pdf` é recusado com `400` antes de qualquer processamento.
 - Limite de páginas (`MAX_PAGINAS`, default 50) — recusa documento grande demais antes de decidir a rota digital/OCR de qualquer página, evitando estourar memória com um upload fora do padrão da amostra (documentos reais chegam a 129 páginas).
 - Concorrência de OCR limitada (`OCR_MAX_CONCORRENTES`, `threading.Semaphore`) — evita N uploads simultâneos rasterizando páginas ao mesmo tempo e estourando RAM.
-- Nenhum segredo no repositório — `.env` no `.gitignore` desde o commit inicial, `.env.example` versionado como documentação, conferido contra todo o histórico de commits (`git log -p --all`) sem achado.
+- Nenhum segredo no repositório — `.env` no `.gitignore` desde o commit inicial, defaults documentados em `docker-compose.yml`, conferido contra todo o histórico de commits (`git log -p --all`) sem achado.
 - Retenção limitada por padrão (ver seção acima) em vez de reter indefinidamente.

@@ -6,11 +6,11 @@ os.environ["DB_PATH"] = os.path.join(_TMPDIR, "app.db")
 os.environ["UPLOAD_DIR"] = os.path.join(_TMPDIR, "uploads")
 os.environ["MAX_UPLOAD_MB"] = "1"
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import pytest
+from fastapi.testclient import TestClient
 
-from app.main import app  # noqa: E402
-from app.models.repository import inicializar_schema  # noqa: E402
+from app.main import app
+from app.models.repository import inicializar_schema
 
 
 @pytest.fixture(scope="session", autouse=True)

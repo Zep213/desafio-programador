@@ -76,9 +76,6 @@ def _localizar_cabecalho(linhas: list[list[Palavra]]) -> dict | None:
     for linha in linhas:
         papeis = [SINONIMOS_COLUNA.get(tokens.sem_acento(p.texto).lower()) for p in linha]
         reconhecidos = [p for p in papeis if p is not None]
-        # uma linha-título de seção (ex.: "Proventos  Descontos") também casa com o
-        # sinônimo de "valor" duas vezes — só é cabeçalho de verdade se tiver coluna
-        # de rótulo (nome/código), não só valor.
         if len(reconhecidos) >= 2 and any(p in ("nome", "codigo") for p in reconhecidos):
             return {"linha": linha, "top": linha[0].top}
     return None
@@ -125,9 +122,6 @@ def _dividir_por_competencia(linhas: list[list[Palavra]]) -> list[tuple[tuple[st
     if blocos:
         return blocos
 
-    # Fallback: documento sem rótulo "Mês"/"Período" nenhum — a competência aparece
-    # solta (ex.: "SETEMBRO/2019"). Só entra em jogo quando o rótulo não existe em
-    # lugar nenhum da página, pra não competir com o caminho já calibrado.
     return _agrupar_por_marcador(linhas, _competencia_solta_na_linha)
 
 
@@ -196,11 +190,6 @@ def _extrair_fields_e_bases(
             if _linha_tem_dois_pontos(linha):
                 continue
 
-            # Colunas lado a lado (Proventos | Descontos) podem trazer mais de uma
-            # verba na mesma linha física. Percorre em ordem x e fecha um grupo a
-            # cada "valor" encontrado; se nenhum rótulo novo apareceu desde o
-            # último valor (ex.: "Total" compartilhado por duas colunas), reusa o
-            # último rótulo em vez de descartar o valor.
             buffer_codigo: list[Palavra] = []
             buffer_nome: list[Palavra] = []
             buffer_referencia: list[Palavra] = []
@@ -214,10 +203,6 @@ def _extrair_fields_e_bases(
             for papel, p in classificada:
                 if papel == "valor" and tokens.normalizar_dinheiro(p.texto):
                     label = " ".join(x.texto for x in buffer_nome) if buffer_nome else ultimo_label
-                    # rótulo puramente numérico não é rótulo de verba — é sinal de que
-                    # essa linha pertence a outra sub-tabela (ex.: mini-resumo de bases
-                    # com rótulos numa linha e valores na linha de baixo, layout que
-                    # essa gramática ainda não segue). Melhor descartar que inventar.
                     if label and any(c.isalpha() for c in label):
                         value = tokens.normalizar_dinheiro(p.texto)
                         code = buffer_codigo[0].texto if buffer_codigo else ""
