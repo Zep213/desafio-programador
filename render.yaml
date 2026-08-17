@@ -1,0 +1,45 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec) — reduz o deploy a
+# "New > Blueprint > apontar pra este repositório > Apply", em vez de preencher
+# cada variável de ambiente manualmente no painel.
+#
+# NÃO valide isto contra a API do Render por mim — não tenho conta nem CLI neste
+# ambiente. Se algum campo estiver desatualizado em relação à spec atual deles,
+# o próprio painel do Render avisa qual chave é inválida ao tentar aplicar.
+#
+# PORT: propositalmente OMITIDO. O Render injeta a própria variável PORT no
+# runtime Docker; o entrypoint.sh já lê ${PORT:-8000}, então não hardcode aqui.
+#
+# OCR_MAX_CONCORRENTES=1 (em vez do default local, 2): o tier free tem 512MB de
+# RAM, e Tesseract + rasterização a 300 DPI é pesado por página. Começa
+# conservador; se o healthcheck ou o upload de um exemplo escaneado passar sem
+# estourar memória, pode subir pra 2 e testar de novo. Se ESTOURAR mesmo em 1,
+# o próximo botão a puxar é OCR_DPI pra 200 (documentar a troca no SOLUCAO.md,
+# é diferença conhecida entre local e produção, não bug escondido).
+
+services:
+  - type: web
+    name: quick-filler
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DB_PATH
+        value: ./data/app.db
+      - key: UPLOAD_DIR
+        value: ./data/uploads
+      - key: MAX_UPLOAD_MB
+        value: "20"
+      - key: MAX_PAGINAS
+        value: "50"
+      - key: OCR_DPI
+        value: "300"
+      - key: OCR_CONF_THRESHOLD
+        value: "65"
+      - key: OCR_MAX_CONCORRENTES
+        value: "1"
+      - key: RETENCAO_HORAS
+        value: "24"

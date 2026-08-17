@@ -3,7 +3,7 @@ import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 DB_PATH = os.environ.get("DB_PATH", "./data/app.db")
 
@@ -94,3 +94,17 @@ def substituir_value(id_: str, value: dict) -> None:
             "UPDATE transcricoes SET value = ? WHERE id = ?",
             (json.dumps(value, ensure_ascii=False), id_),
         )
+
+
+def listar_ids_expirados(retencao_horas: float) -> list[str]:
+    limite = (datetime.now(timezone.utc) - timedelta(hours=retencao_horas)).isoformat()
+    with _conexao() as conn:
+        linhas = conn.execute(
+            "SELECT id FROM transcricoes WHERE criado_em < ?", (limite,)
+        ).fetchall()
+    return [linha["id"] for linha in linhas]
+
+
+def excluir(id_: str) -> None:
+    with _conexao() as conn:
+        conn.execute("DELETE FROM transcricoes WHERE id = ?", (id_,))

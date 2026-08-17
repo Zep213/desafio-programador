@@ -1,10 +1,13 @@
+import os
+
 from app.errors import LayoutDesconhecidoError
 from app.services import colunas as colunas_util
 from app.services import reader, tokens
 from app.services.extractors.base import Extractor
 from app.services.reader import Palavra
 
-LIMIAR_CONFIANCA_OCR = 65.0
+LIMIAR_CONFIANCA_OCR_DEFAULT = 65.0
+LIMIAR_CONFIANCA_OCR = float(os.environ.get("OCR_CONF_THRESHOLD", LIMIAR_CONFIANCA_OCR_DEFAULT))
 
 SINONIMOS_COLUNA = {
     "dia": "dia",
@@ -108,6 +111,33 @@ def _extrair_dias_por_coluna(linhas: list[list[Palavra]], colunas: list[dict]) -
     return dias
 
 
+GAP_MINIMO_AREA_DE_TOTAIS = 25.0
+
+
+def _limite_area_de_batidas(horarios: list[Palavra]) -> float:
+    """Sem cabeçalho pra apontar onde a coluna de batida termina e a de totais
+    (H.Ext, Atraso, Falta, Ad.Not, Abono...) começa, usa a própria geometria da
+    linha: as batidas de verdade ficam com espaçamento regular entre si, e há um
+    salto horizontal bem maior antes do bloco de totais. Sem esse salto claro
+    (linha só com 0 ou 1 horário, ou espaçamento uniforme), não corta nada — é
+    melhor manter tudo do que arriscar cortar batida de verdade."""
+    if len(horarios) < 2:
+        return float("inf")
+
+    ordenadas = sorted(horarios, key=lambda p: p.x0)
+    gaps = [ordenadas[i + 1].x0 - ordenadas[i].x1 for i in range(len(ordenadas) - 1)]
+    maior = max(gaps)
+    indice_maior = gaps.index(maior)
+
+    outros = [g for i, g in enumerate(gaps) if i != indice_maior]
+    media_outros = (sum(outros) / len(outros)) if outros else 0.0
+
+    salto_e_dominante = maior >= GAP_MINIMO_AREA_DE_TOTAIS and maior > 2 * media_outros
+    if not salto_e_dominante:
+        return float("inf")
+    return ordenadas[indice_maior + 1].x0
+
+
 def _extrair_dias_fallback(linhas: list[list[Palavra]]) -> list[dict]:
     dias: list[dict] = []
     dia_atual: dict | None = None
@@ -115,7 +145,9 @@ def _extrair_dias_fallback(linhas: list[list[Palavra]]) -> list[dict]:
     for linha in linhas:
         primeira = linha[0]
         eh_novo_dia = tokens.eh_marcador_de_dia(primeira.texto)
-        horarios = [p for p in linha if tokens.TIME_RE.search(p.texto)]
+        todos_horarios = [p for p in linha if tokens.TIME_RE.search(p.texto)]
+        limite = _limite_area_de_batidas(todos_horarios)
+        horarios = [p for p in todos_horarios if p.x0 < limite]
 
         if not eh_novo_dia and not horarios:
             continue

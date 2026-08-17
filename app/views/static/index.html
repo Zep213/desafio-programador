@@ -4,12 +4,65 @@
   <meta charset="utf-8" />
   <title>Quick Filler — Desafio Programador</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <h1>Quick Filler</h1>
-  <p>Interface em construção — chega no Dia 5. Hoje (Dia 1) só a API está de pé.</p>
-  <p>Contrato: <code>POST /api/transcricoes</code>, <code>GET /api/transcricoes/:id</code>,
-    <code>PUT /api/transcricoes/:id</code>, <code>GET /api/transcricoes/:id/planilha</code>,
-    <code>GET /healthz</code>.</p>
+  <header>
+    <h1>Quick Filler</h1>
+    <p>Envie um cartão de ponto ou holerite em PDF, acompanhe o processamento, revise a transcrição ao lado do documento original e baixe a planilha corrigida.</p>
+  </header>
+
+  <main>
+    <section id="painel-upload">
+      <form id="form-upload">
+        <label>
+          Arquivo (PDF)
+          <input id="input-arquivo" type="file" accept="application/pdf" required />
+        </label>
+        <label>
+          Tipo de documento
+          <select id="input-tipo">
+            <option value="cartao-ponto">Cartão de ponto</option>
+            <option value="holerite">Holerite</option>
+          </select>
+        </label>
+        <button id="btn-enviar" type="submit">Enviar</button>
+      </form>
+    </section>
+
+    <section id="painel-progresso" class="hidden">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Processando o documento — isso pode levar alguns segundos…</p>
+    </section>
+
+    <section id="painel-erro" class="hidden">
+      <p id="mensagem-erro"></p>
+      <button id="btn-tentar-outro" type="button">Tentar outro arquivo</button>
+    </section>
+
+    <section id="painel-revisao" class="hidden">
+      <div id="painel-acoes">
+        <button id="btn-salvar" class="primario" type="button">Salvar correções</button>
+        <span id="status-salvar"></span>
+        <button type="button" data-formato="xlsx" class="primario">Baixar .xlsx</button>
+        <button type="button" data-formato="csv">Baixar .csv</button>
+        <button type="button" data-formato="json">Baixar .json</button>
+      </div>
+
+      <div id="painel-revisao-corpo">
+        <div id="coluna-pdf">
+          <embed id="embed-pdf" type="application/pdf" />
+        </div>
+        <div id="coluna-tabela">
+          <div class="tabela-scroll">
+            <table id="tabela-revisao"></table>
+          </div>
+          <div id="motivos-aviso"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
 </body>
 </html>

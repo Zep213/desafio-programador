@@ -1,4 +1,7 @@
+import os
+import sqlite3
 import threading
+from datetime import datetime, timedelta, timezone
 
 from app.models import repository as repo
 
@@ -98,6 +101,80 @@ def test_ciclo_completo_polling_ate_concluido(client, monkeypatch, holerite_real
     assert corpo["erro"] is None
     assert corpo["value"]["pages"][0]["year"] == "2019"
     assert corpo["value"]["pages"][0]["month"] == "10"
+
+
+def test_get_traz_avisos_calculados_on_the_fly_cartao(client):
+    id_ = repo.criar("cartao-ponto")
+    value = {
+        "pages": [
+            {
+                "page": 1,
+                "days": [
+                    {"date_raw": "01", "punches": [{"kind": "IN", "time_raw": "08:00", "time_hhmm": "08:00"}]},
+                    {"date_raw": "02", "punches": []},
+                ],
+            }
+        ]
+    }
+    repo.concluir(id_, value)
+
+    resp = client.get(f"/api/transcricoes/{id_}")
+    assert resp.status_code == 200
+    corpo = resp.json()
+    assert corpo["avisos"] == [["batidas_impares"], []]
+
+
+def test_get_avisos_none_enquanto_processando(client):
+    id_ = repo.criar("holerite")
+    resp = client.get(f"/api/transcricoes/{id_}")
+    assert resp.status_code == 200
+    assert resp.json()["avisos"] is None
+
+
+def test_get_arquivo_original_devolve_pdf(client, pdf_valido, monkeypatch):
+    monkeypatch.setattr("app.services.pipeline.processar", lambda *a, **k: None)
+    resp_post = client.post(
+        "/api/transcricoes",
+        files={"arquivo": ("doc.pdf", pdf_valido, "application/pdf")},
+        data={"tipo": "cartao-ponto"},
+    )
+    id_ = resp_post.json()["id"]
+
+    resp = client.get(f"/api/transcricoes/{id_}/arquivo")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert resp.content.startswith(b"%PDF")
+
+
+def test_get_arquivo_original_id_inexistente_404(client):
+    resp = client.get("/api/transcricoes/nao-existe/arquivo")
+    assert resp.status_code == 404
+
+
+def test_upload_dispara_limpeza_de_registro_expirado(client, pdf_valido, monkeypatch, tmp_path):
+    monkeypatch.setattr("app.controllers.transcricao_controller.UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr("app.controllers.transcricao_controller.RETENCAO_HORAS", 24.0)
+    monkeypatch.setattr("app.services.pipeline.processar", lambda *a, **k: None)
+
+    id_antigo = repo.criar("cartao-ponto")
+    repo.concluir(id_antigo, {"pages": []})
+    caminho_antigo = tmp_path / f"{id_antigo}.pdf"
+    caminho_antigo.write_bytes(b"%PDF-1.4\nfake")
+
+    velho = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
+    with sqlite3.connect(os.environ["DB_PATH"]) as conn:
+        conn.execute("UPDATE transcricoes SET criado_em = ? WHERE id = ?", (velho, id_antigo))
+        conn.commit()
+
+    resp = client.post(
+        "/api/transcricoes",
+        files={"arquivo": ("doc.pdf", pdf_valido, "application/pdf")},
+        data={"tipo": "cartao-ponto"},
+    )
+    assert resp.status_code == 202
+
+    assert client.get(f"/api/transcricoes/{id_antigo}").status_code == 404
+    assert not caminho_antigo.exists()
 
 
 def test_put_substitui_value_e_get_reflete(client, pdf_valido, monkeypatch):

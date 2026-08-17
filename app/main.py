@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,7 +9,7 @@ from app.controllers.transcricao_controller import router as transcricao_router
 from app.errors import registrar_handlers
 from app.models.repository import inicializar_schema
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
 
 @asynccontextmanager

@@ -7,13 +7,15 @@ import pdfplumber
 from app.errors import DocumentoGrandeDemaisError, OCRFalhouError, PDFCorrompidoError
 
 DENSIDADE_MINIMA_CHARS = 200
-OCR_DPI = 300
 PONTOS_POR_POLEGADA = 72
 MAX_PAGINAS_DEFAULT = 50
-MAX_OCR_CONCORRENTE_DEFAULT = 2
+OCR_DPI_DEFAULT = 300
+OCR_MAX_CONCORRENTES_DEFAULT = 2
+
+OCR_DPI = int(os.environ.get("OCR_DPI", OCR_DPI_DEFAULT))
 
 _OCR_SEMAFORO = threading.Semaphore(
-    int(os.environ.get("MAX_OCR_CONCORRENTE", MAX_OCR_CONCORRENTE_DEFAULT))
+    int(os.environ.get("OCR_MAX_CONCORRENTES", OCR_MAX_CONCORRENTES_DEFAULT))
 )
 
 

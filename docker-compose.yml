@@ -2,10 +2,17 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       - ./data:/app/data
     environment:
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      PORT: ${PORT:-8000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DB_PATH: ${DB_PATH:-./data/app.db}
       UPLOAD_DIR: ${UPLOAD_DIR:-./data/uploads}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      MAX_PAGINAS: ${MAX_PAGINAS:-50}
+      OCR_DPI: ${OCR_DPI:-300}
+      OCR_CONF_THRESHOLD: ${OCR_CONF_THRESHOLD:-65}
+      OCR_MAX_CONCORRENTES: ${OCR_MAX_CONCORRENTES:-2}
+      RETENCAO_HORAS: ${RETENCAO_HORAS:-24}

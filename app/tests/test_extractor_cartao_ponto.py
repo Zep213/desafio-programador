@@ -2,7 +2,11 @@ import os
 
 import pytest
 
-from app.services.extractors.cartao_ponto import CartaoPontoExtractor, _extrair_dias_por_coluna
+from app.services.extractors.cartao_ponto import (
+    CartaoPontoExtractor,
+    _extrair_dias_fallback,
+    _extrair_dias_por_coluna,
+)
 from app.services.reader import Palavra
 
 CAMINHO_EXEMPLO = os.path.join(
@@ -101,6 +105,44 @@ def test_faixa_colada_pelo_ocr_vira_dois_punches():
     ]
     assert punches[0]["time_raw"] == "08:48-16:11"
     assert punches[1]["time_raw"] == "08:48-16:11"
+
+
+def test_fallback_descarta_horarios_isolados_a_direita_como_totais():
+    # Documento sem cabeçalho reconhecido (ex.: coluna "Data" em vez de "Dia",
+    # ou cabeçalho ilegível por OCR) — 4 batidas reais bem próximas, depois um
+    # salto grande antes de valores tipo H.Ext/Atraso/Ad.Not que também parecem
+    # horário mas não são batida nenhuma.
+    linha = [
+        _palavra("16/12/2019", 5, 0),
+        _palavra("07:00", 100, 0),
+        _palavra("12:00", 140, 0),
+        _palavra("13:00", 180, 0),
+        _palavra("17:00", 220, 0),
+        _palavra("01:15", 400, 0),  # H.Ext
+        _palavra("00:30", 450, 0),  # Atraso
+    ]
+
+    dias = _extrair_dias_fallback([linha])
+
+    assert len(dias) == 1
+    assert [p["time_hhmm"] for p in dias[0]["punches"]] == ["07:00", "12:00", "13:00", "17:00"]
+
+
+def test_fallback_nao_corta_quando_espacamento_e_uniforme():
+    # Sem salto dominante (espaçamento regular do início ao fim), não há
+    # sinal geométrico de "área de totais" — melhor manter tudo a arriscar
+    # cortar batida real por engano.
+    linha = [
+        _palavra("16/12/2019", 5, 0),
+        _palavra("07:00", 100, 0),
+        _palavra("12:00", 150, 0),
+        _palavra("13:00", 200, 0),
+        _palavra("17:00", 250, 0),
+    ]
+
+    dias = _extrair_dias_fallback([linha])
+
+    assert [p["time_hhmm"] for p in dias[0]["punches"]] == ["07:00", "12:00", "13:00", "17:00"]
 
 
 def test_palavra_com_confianca_ocr_baixa_vira_incerta():
