@@ -49,6 +49,12 @@ class CartaoPontoExtractor(Extractor):
                 "Nenhum dia reconhecido em nenhuma página — layout não identificado."
             )
 
+        total_batidas = sum(len(d["punches"]) for p in pages for d in p["days"])
+        if total_batidas == 0:
+            raise LayoutDesconhecidoError(
+                "Dias foram reconhecidos, mas nenhuma batida em nenhum deles — layout provavelmente não identificado."
+            )
+
         return {"pages": pages}
 
 

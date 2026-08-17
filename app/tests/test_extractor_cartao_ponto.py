@@ -2,16 +2,17 @@ import os
 
 import pytest
 
+from app.errors import LayoutDesconhecidoError
+from app.services import reader
 from app.services.extractors.cartao_ponto import (
     CartaoPontoExtractor,
     _extrair_dias_fallback,
     _extrair_dias_por_coluna,
 )
-from app.services.reader import Palavra
+from app.services.reader import PaginaLida, Palavra
 
-CAMINHO_EXEMPLO = os.path.join(
-    os.path.dirname(__file__), "..", "..", "exemplos", "time-card-01.pdf"
-)
+EXEMPLOS = os.path.join(os.path.dirname(__file__), "..", "..", "exemplos")
+CAMINHO_EXEMPLO = os.path.join(EXEMPLOS, "time-card-01.pdf")
 
 
 @pytest.fixture(scope="module")
@@ -159,3 +160,28 @@ def test_palavra_com_confianca_ocr_baixa_vira_incerta():
     punch = dias[0]["punches"][0]
     assert punch["time_raw"] == "08:48"
     assert punch["time_hhmm"] == "??:??"
+
+
+def test_dias_reconhecidos_sem_nenhuma_batida_levanta_erro_honesto(monkeypatch):
+    # Reproduz o formato do time-card-04.pdf no caminho de fallback: fragmentos
+    # de cabeçalho de quinzena ("1.QUINZENA", números soltos) viram "dias" por
+    # começarem com 1-2 dígitos, mas nenhum tem horário por perto. Zero batidas
+    # no documento inteiro não é uma leitura escassa — é layout não identificado.
+    palavras = [_palavra("1.QUINZENA", 5, 0), _palavra("6", 5, 10), _palavra("4", 5, 20)]
+    pagina = PaginaLida(page=1, rota="digital", palavras=palavras)
+    monkeypatch.setattr(reader, "ler", lambda caminho: [pagina])
+
+    with pytest.raises(LayoutDesconhecidoError):
+        CartaoPontoExtractor().extract("qualquer.pdf")
+
+
+def test_time_card_04_layout_nao_reconhecido_levanta_erro_honesto():
+    with pytest.raises(LayoutDesconhecidoError):
+        CartaoPontoExtractor().extract(os.path.join(EXEMPLOS, "time-card-04.pdf"))
+
+
+@pytest.mark.parametrize("nome", ["time-card-01.pdf", "time-card-02.pdf", "time-card-03.pdf"])
+def test_documentos_reais_com_batida_nao_regridem(nome):
+    transcricao = CartaoPontoExtractor().extract(os.path.join(EXEMPLOS, nome))
+    total_batidas = sum(len(d["punches"]) for p in transcricao["pages"] for d in p["days"])
+    assert total_batidas > 0
