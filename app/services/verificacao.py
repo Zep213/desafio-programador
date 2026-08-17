@@ -19,7 +19,6 @@ def _parse_valor(valor: str) -> float | None:
 
 
 def verificar_totais_holerite(id_: str, pages: list[dict]) -> None:
-    """Soma fields[].value e compara com a base 'líquido' impressa. Só loga — nunca corrige o dado."""
     for entrada in pages:
         campos = entrada.get("fields", [])
         if not campos:

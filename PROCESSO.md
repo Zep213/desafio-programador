@@ -145,7 +145,7 @@ Vale repetir aqui porque é o resumo mais direto de como a IA e eu trabalhamos j
 
 **Decisão: editar uma célula de horário vazia cria o `punch` que faltava** (com `kind` por paridade de posição, `time_raw`/`time_hhmm` iguais ao texto digitado). A alternativa seria proibir edição em células sem batida correspondente — rejeitada porque o `dia-5.md` pede "cada célula editável", e um humano corrigindo um dia com batida perdida (`punches: []` que devia ter duas) precisa conseguir preencher, não só corrigir o que já existe.
 
-**Não testei visualmente num navegador real — só o backend (via `curl`/`TestClient`), incluindo o ciclo completo enviar→poll→`avisos`→editar→`PUT`→baixar `.csv` com a correção refletida.** Não tenho ferramenta de automação de navegador neste ambiente. O item 5 do checklist do Dia 5 (regressão pelos 8 exemplos clicando na interface, mais tela estreita) ainda precisa ser feito manualmente antes de considerar o dia fechado — é a lacuna mais honesta que tenho a registrar hoje.
+**Testado no Chrome desktop pelo usuário, não só via `curl`/`TestClient` por mim.** Não tenho ferramenta de automação de navegador neste ambiente, então validei o backend (ciclo completo enviar→poll→`avisos`→editar→`PUT`→baixar `.csv` com a correção refletida) e pedi confirmação manual do resto. Upload, polling, tabela editável, PDF ao lado, edição, salvar e download — todos confirmados funcionando de verdade no navegador. O que falta do item 5 do checklist do Dia 5: testar numa tela estreita (mobile) e conferir o console sem erro. Isso ainda precisa acontecer antes de considerar o dia fechado.
 
 ## Dia 6, Bloco 1 — bug bloqueante: batidas inventadas nas colunas de totais
 

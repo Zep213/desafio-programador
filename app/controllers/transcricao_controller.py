@@ -24,9 +24,6 @@ CHUNK_SIZE = 1024 * 1024
 
 
 def _limpar_expirados() -> None:
-    """Melhor esforço: varre por transcrições mais velhas que RETENCAO_HORAS a
-    cada novo upload (não é um cron dedicado — não há infra de agendamento no
-    processo hoje). Falha aqui nunca deve derrubar um upload em andamento."""
     try:
         for id_ in repo.listar_ids_expirados(RETENCAO_HORAS):
             caminho = os.path.join(UPLOAD_DIR, f"{id_}.pdf")
@@ -85,9 +82,6 @@ async def criar_transcricao(
 
 
 def _calcular_avisos(tipo: str, value: dict | None) -> list[list[str]] | None:
-    """Avisos nunca são armazenados — recalculados a cada resposta a partir do
-    'value' atual, com as MESMAS funções que os exporters usam (services/tabela.py),
-    na mesma ordem de linhas que a tabela/planilha (páginas então dias, sem reordenar)."""
     if value is None:
         return None
     if tipo == "cartao-ponto":
